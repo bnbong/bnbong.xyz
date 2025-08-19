@@ -1,8 +1,5 @@
 # --------------------------------------------------------------------------
-# Python Project Template
-#
-# A template for Python projects using uv package manager.
+# Core modules for the API Gateway service
 #
 # @author bnbong bbbong9@gmail.com
 # --------------------------------------------------------------------------
-__version__ = "0.1.0"
