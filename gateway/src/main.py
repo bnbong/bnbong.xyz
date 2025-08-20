@@ -7,14 +7,15 @@
 import asyncio
 import logging
 from contextlib import asynccontextmanager
+from typing import AsyncGenerator
 
-import structlog
+import structlog  # type: ignore
 import uvicorn
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
-from prometheus_client import Counter, Histogram
-from prometheus_client.openmetrics.exposition import generate_latest
+from prometheus_client import Counter, Histogram  # type: ignore
+from prometheus_client.openmetrics.exposition import generate_latest  # type: ignore
 
 from .config import settings
 from .core.middleware import LoggingMiddleware, RateLimitMiddleware
@@ -32,7 +33,7 @@ structlog.configure(
         structlog.processors.StackInfoRenderer(),
         structlog.processors.format_exc_info,
         structlog.processors.UnicodeDecoder(),
-        structlog.processors.JSONRenderer()
+        structlog.processors.JSONRenderer(),
     ],
     context_class=dict,
     logger_factory=structlog.stdlib.LoggerFactory(),
@@ -43,27 +44,31 @@ structlog.configure(
 logger = structlog.get_logger()
 
 # Prometheus metrics
-REQUEST_COUNT = Counter('http_requests_total', 'Total HTTP requests', ['method', 'endpoint', 'status'])
-REQUEST_LATENCY = Histogram('http_request_duration_seconds', 'HTTP request latency')
+REQUEST_COUNT = Counter(
+    "http_requests_total", "Total HTTP requests", ["method", "endpoint", "status"]
+)
+REQUEST_LATENCY = Histogram("http_request_duration_seconds", "HTTP request latency")
+
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """Application lifespan manager"""
     # Startup
     logger.info("Starting Bifrost API Gateway")
-    
+
     # Initialize service registry
     app.state.service_registry = ServiceRegistry()
     await app.state.service_registry.initialize()
-    
+
     logger.info("Bifrost API Gateway started successfully")
-    
+
     yield
-    
+
     # Shutdown
     logger.info("Shutting down Bifrost API Gateway")
-    if hasattr(app.state, 'service_registry'):
+    if hasattr(app.state, "service_registry"):
         await app.state.service_registry.cleanup()
+
 
 def create_app() -> FastAPI:
     """Create and configure FastAPI application"""
@@ -73,9 +78,9 @@ def create_app() -> FastAPI:
         version="1.0.0",
         docs_url="/docs" if settings.ENVIRONMENT != "production" else None,
         redoc_url="/redoc" if settings.ENVIRONMENT != "production" else None,
-        lifespan=lifespan
+        lifespan=lifespan,
     )
-    
+
     # Add middleware
     app.add_middleware(
         CORSMiddleware,
@@ -84,34 +89,35 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
-    
+
     app.add_middleware(TrustedHostMiddleware, allowed_hosts=settings.ALLOWED_HOSTS)
     app.add_middleware(LoggingMiddleware)
     app.add_middleware(RateLimitMiddleware)
-    
+
     # Add routes
     app.include_router(api_router, prefix="/api/v1")
-    
+
     # Health check endpoint
     @app.get("/health")
-    async def health_check():
+    async def health_check() -> dict:
         return {"status": "healthy", "service": "bifrost"}
-    
+
     # Metrics endpoint
     @app.get("/metrics")
-    async def metrics():
+    async def metrics() -> Response:
         return Response(generate_latest(), media_type="text/plain")
-    
+
     # Root endpoint
     @app.get("/")
-    async def root():
+    async def root() -> dict:
         return {
             "message": "Welcome to Bifrost API Gateway",
             "version": "1.0.0",
-            "docs": "/docs" if settings.ENVIRONMENT != "production" else None
+            "docs": "/docs" if settings.ENVIRONMENT != "production" else None,
         }
-    
+
     return app
+
 
 app = create_app()
 

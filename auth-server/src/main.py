@@ -3,8 +3,10 @@
 #
 # @author bnbong bbbong9@gmail.com
 # --------------------------------------------------------------------------
-import uvicorn
 from contextlib import asynccontextmanager
+from typing import AsyncGenerator
+
+import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
@@ -13,22 +15,25 @@ from .config import settings
 from .core.auth import router as auth_router
 from .core.users import router as users_router
 
+
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """Application lifespan manager"""
     # Startup
     print("Starting Auth Server")
-    
+
     # Initialize database
     from .core.database import init_db
+
     await init_db()
-    
+
     print("Auth Server started successfully")
-    
+
     yield
-    
+
     # Shutdown
     print("Shutting down Auth Server")
+
 
 def create_app() -> FastAPI:
     """Create and configure FastAPI application"""
@@ -38,9 +43,9 @@ def create_app() -> FastAPI:
         version="1.0.0",
         docs_url="/docs" if settings.ENVIRONMENT != "production" else None,
         redoc_url="/redoc" if settings.ENVIRONMENT != "production" else None,
-        lifespan=lifespan
+        lifespan=lifespan,
     )
-    
+
     # Add middleware
     app.add_middleware(
         CORSMiddleware,
@@ -49,28 +54,29 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
-    
+
     app.add_middleware(TrustedHostMiddleware, allowed_hosts=settings.ALLOWED_HOSTS)
-    
+
     # Add routes
     app.include_router(auth_router, prefix="/auth", tags=["authentication"])
     app.include_router(users_router, prefix="/users", tags=["users"])
-    
+
     # Health check endpoint
     @app.get("/health")
-    async def health_check():
+    async def health_check() -> dict:
         return {"status": "healthy", "service": "auth-server"}
-    
+
     # Root endpoint
     @app.get("/")
-    async def root():
+    async def root() -> dict:
         return {
             "message": "Welcome to Auth Server",
             "version": "1.0.0",
-            "docs": "/docs" if settings.ENVIRONMENT != "production" else None
+            "docs": "/docs" if settings.ENVIRONMENT != "production" else None,
         }
-    
+
     return app
+
 
 app = create_app()
 

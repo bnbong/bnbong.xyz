@@ -10,26 +10,55 @@ repos:
       - id: debug-statements
       - id: check-docstring-first
 
-  - repo: https://github.com/psf/black
-    rev: 24.1.1
+  # Gateway Service Hooks
+  - repo: local
     hooks:
-      - id: black
-        language_version: python3
+      - id: format-gateway
+        name: format-gateway
+        entry: bash -c "cd gateway && bash scripts/format.sh"
+        language: system
+        pass_filenames: false
+        files: ^gateway/
 
-  - repo: https://github.com/pycqa/isort
-    rev: 5.13.2
-    hooks:
-      - id: isort
-        args: ["--profile", "black"]
+      - id: lint-gateway
+        name: lint-gateway
+        entry: bash -c "cd gateway && bash scripts/lint.sh"
+        language: system
+        pass_filenames: false
+        files: ^gateway/
 
-  - repo: https://github.com/pycqa/flake8
-    rev: 7.0.0
+  # Auth Server Hooks
+  - repo: local
     hooks:
-      - id: flake8
-        additional_dependencies: [flake8-docstrings]
+      - id: format-auth-server
+        name: format-auth-server
+        entry: bash -c "cd auth-server && bash scripts/format.sh"
+        language: system
+        pass_filenames: false
+        files: ^auth-server/
 
-  - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.8.0
-    hooks:
-      - id: mypy
-        additional_dependencies: [types-all]
+      - id: lint-auth-server
+        name: lint-auth-server
+        entry: bash -c "cd auth-server && bash scripts/lint.sh"
+        language: system
+        pass_filenames: false
+        files: ^auth-server/
+
+  # Test Hooks (TODO: Add test cases & hooks)
+  # - repo: local
+  #   hooks:
+  #     - id: test-gateway
+  #       name: test-gateway
+  #       entry: bash -c "cd gateway && bash scripts/coverage-report.sh"
+  #       language: system
+  #       types: [python]
+  #       pass_filenames: false
+  #       files: ^gateway/
+  #
+  #     - id: test-auth-server
+  #       name: test-auth-server
+  #       entry: bash -c "cd auth-server && bash scripts/coverage-report.sh"
+  #       language: system
+  #       types: [python]
+  #       pass_filenames: false
+  #       files: ^auth-server/
